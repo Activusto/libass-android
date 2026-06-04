@@ -118,6 +118,7 @@ jobjectArray nativeAssTrackGetEvents(JNIEnv* env, jclass clazz, jlong track) {
         (*env)->DeleteLocalRef(env, text);
 
         (*env)->SetObjectArrayElement(env, eventArray, i, javaEvent);
+        (*env)->DeleteLocalRef(env, javaEvent);
     }
     return eventArray;
 }
