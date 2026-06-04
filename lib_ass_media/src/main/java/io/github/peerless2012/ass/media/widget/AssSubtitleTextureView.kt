@@ -365,7 +365,9 @@ class AssSubtitleTextureView : TextureView, AssSubtitleRender, TextureView.Surfa
         override fun onSurfaceDestroyed() {
             GlUtil.deleteBuffer(vertexBufferId)
             GlUtil.deleteBuffer(texCoordBufferId)
-            glProgram.delete()
+            if (::glProgram.isInitialized) {
+                glProgram.delete()
+            }
         }
 
     }
