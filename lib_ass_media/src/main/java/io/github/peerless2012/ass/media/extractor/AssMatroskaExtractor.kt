@@ -1,12 +1,15 @@
 package io.github.peerless2012.ass.media.extractor
 
 import androidx.annotation.OptIn
+import androidx.media3.common.Format
+import androidx.media3.common.MimeTypes
 import androidx.media3.common.util.ParsableByteArray
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.extractor.ExtractorInput
 import androidx.media3.extractor.ExtractorOutput
 import androidx.media3.extractor.mkv.EbmlProcessor
 import androidx.media3.extractor.mkv.MatroskaExtractor
+import androidx.media3.extractor.text.DefaultSubtitleParserFactory
 import androidx.media3.extractor.text.SubtitleParser
 import io.github.peerless2012.ass.media.AssHandler
 import io.github.peerless2012.ass.media.text.AssSubtitleExtractorOutput
@@ -17,7 +20,33 @@ open class AssMatroskaExtractor(
     subtitleParserFactory: SubtitleParser.Factory,
     private val assHandler: AssHandler,
     flags: Int = 0
-) : MatroskaExtractor(subtitleParserFactory, flags) {
+) : MatroskaExtractor(
+    // Selective subtitle parser factory that only intercepts ASS/SSA at extractor level.
+    // SRT/VTT/TTML pass through to the decoder path where offset is applied.
+    object : SubtitleParser.Factory {
+        private val defaultFactory = DefaultSubtitleParserFactory()
+
+        override fun supportsFormat(format: Format): Boolean {
+            // Only intercept ASS/SSA streams at extractor level
+            return format.sampleMimeType == MimeTypes.TEXT_SSA ||
+                   format.sampleMimeType == "text/x-ssa"
+        }
+
+        override fun create(format: Format): SubtitleParser {
+            return if (supportsFormat(format)) {
+                subtitleParserFactory.create(format)
+            } else {
+                // For SRT/VTT/TTML, use default parser (will go through decoder path)
+                defaultFactory.create(format)
+            }
+        }
+
+        override fun getCueReplacementBehavior(format: Format): Int {
+            return subtitleParserFactory.getCueReplacementBehavior(format)
+        }
+    },
+    flags
+) {
 
     private var currentAttachmentName: String? = null
     private var currentAttachmentMime: String? = null
